@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hub de Simuladores de Física – Rafael Moreno Bañaga</title>
+  <meta name="description" content="Un solo lugar con todos mis simuladores de física para compartir con un único QR." />
+  <style>
+    :root{
+      --bg: #0b0f14; /* fondo oscuro elegante */
+      --card: #121821;
+      --text: #e7edf4;
+      --muted:#a9b7c6;
+      --brand:#5ec0ff;
+      --accent:#98f5a7;
+      --ring: rgba(94,192,255,.35);
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius: 18px;
+
+      /* Botones accesibles (modo oscuro) */
+      --btn-bg: var(--brand);
+      --btn-fg: #0b0f14; /* texto oscuro sobre brand claro */
+      --btn-hover: #7ad0ff; /* un poco más claro */
+      --btn-border: transparent;
+
+      /* Chips / resaltados */
+      --chip-bg: rgba(94,192,255,.15);
+      --chip-active: rgba(94,192,255,.25);
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f7fafc; --card:#ffffff; --text:#0c1218; --muted:#44515f; --brand:#006fe6; --accent:#0aa66b; --ring: rgba(0,111,230,.25);
+        /* Botones accesibles (modo claro) */
+        --btn-bg: var(--brand);
+        --btn-fg:#ffffff; /* texto claro sobre brand oscuro */
+        --btn-hover:#0057bb; /* más oscuro al pasar el mouse */
+        --btn-border: transparent;
+        --chip-bg: rgba(0,111,230,.08);
+        --chip-active: rgba(0,111,230,.14);
+      }
+      body{background-image: radial-gradient(600px 300px at 80% -10%, #e6f0ff, transparent), radial-gradient(500px 260px at -10% 90%, #eafdf0, transparent);} 
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif;
+      color:var(--text); background:var(--bg);
+    }
+    .container{max-width:1100px; margin:0 auto; padding: 28px 18px 80px}
+    header{display:flex; gap:18px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+    .title{display:flex; gap:14px; align-items:center}
+    .logo{width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,var(--brand),var(--accent)); box-shadow: var(--shadow)}
+    h1{font-size: clamp(20px, 3.2vw, 32px); margin:0}
+    .subtitle{color:var(--muted); margin-top:2px; font-size:14px}
+    .actions{display:flex; gap:10px; flex-wrap:wrap}
+    button, .btn{
+      border:1.5px solid var(--btn-border); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700;
+      background: var(--btn-bg); color: var(--btn-fg); box-shadow: var(--shadow); text-decoration:none;
+    }
+    .btn.secondary{background:transparent; color:var(--brand); border:1.5px solid currentColor} 
+    .btn.ghost{background:transparent; color:var(--brand); border:0} 
+    .btn:focus{outline:2px solid var(--ring); outline-offset:2px}
+    .btn:hover{background: var(--btn-hover)}
+    .btn.secondary:hover{background: var(--chip-bg)}
+    a.btn, a.btn:visited{ color: var(--btn-fg); }
+
+    /* search + filters */
+    .toolbar{margin: 18px 0 8px; display:grid; grid-template-columns: 1fr auto; gap:12px}
+    .search{position:relative}
+    .search input{
+      width:100%; padding: 12px 14px 12px 40px; border-radius:12px; border:1px solid rgba(127,161,201,.25);
+      background: var(--card); color: var(--text); outline: none; box-shadow: var(--shadow);
+    }
+    .search svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.65}
+
+    .filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .chip{padding:7px 10px; border-radius:999px; border:1px solid currentColor; cursor:pointer; font-size:13px; color:var(--muted); background:transparent} 
+    .chip.active{border-color: transparent; background: var(--chip-active); color:var(--text)} 
+
+    /* grid */
+    .grid{display:grid; grid-template-columns: repeat( auto-fill, minmax(240px, 1fr) ); gap:14px; margin-top:14px}
+    .card{background:var(--card); border:1px solid rgba(127,161,201,.18); border-radius: var(--radius); box-shadow: var(--shadow); padding:14px; display:flex; flex-direction:column; gap:10px}
+    .card h3{font-size:18px; margin:2px 0 4px}
+    .card p{color:var(--muted); margin:0}
+    .tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:2px}
+    .tag{font-size:12px; padding:4px 8px; border-radius:999px; background: rgba(94,192,255,.14); color: var(--text)}
+    .card .open{margin-top:auto; display:flex; justify-content:space-between; align-items:center}
+    .empty{opacity:.65; text-align:center; padding:28px 6px}
+    footer{margin-top: 26px; color:var(--muted); font-size:13px}
+    .count{font-weight:700; color:var(--text)}
+
+    dialog.modal{border:1px solid rgba(127,161,201,.25); background:var(--card); color:var(--text); border-radius:16px; padding:16px 16px 20px; box-shadow: var(--shadow); max-width: min(420px, 92vw)}
+    .modal header{justify-content:space-between}
+    .modal h2{font-size:18px; margin:0}
+    .qr-box{display:flex; justify-content:center; padding: 10px 0}
+    .modal .row{display:flex; gap:8px; margin-top:8px}
+    .modal input{flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(127,161,201,.25); background:var(--bg); color:var(--text)}
+    .small{font-size:12px; color:var(--muted)}
+    .kbd{font-variant-numeric: tabular-nums; font-size:12px; padding:2px 6px; border:1px solid rgba(127,161,201,.25); border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Hub de Simuladores de Física</h1>
+          <div class="subtitle">Todos tus simuladores en un solo enlace • hecho por Rafael Moreno Bañaga</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="showQR">Mostrar QR del hub</button>
+        <button class="btn secondary" id="shareBtn">Compartir</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/></svg>
+        <input id="q" type="search" placeholder="Buscar (ej. MRU, Óptica, fuerzas)" autocomplete="off"/>
+      </div>
+      <div class="filters" id="filters"></div>
+    </div>
+
+    <div class="grid" id="grid" aria-live="polite"></div>
+
+    <footer>
+      <div>Mostrando <span class="count" id="count">0</span> simuladores.</div>
+      <div class="small">Consejo: pulsa <span class="kbd">/</span> para buscar • Edita el listado en el código (arreglo <strong>SIMULADORES</strong>).</div>
+    </footer>
+  </div>
+
+  <!-- Modal QR -->
+  <dialog class="modal" id="qrModal">
+    <header>
+      <h2>QR del Hub</h2>
+      <button class="btn ghost" id="closeQR" aria-label="Cerrar">✕</button>
+    </header>
+    <div class="qr-box"><div id="qrcode"></div></div>
+    <div class="row">
+      <input id="hubURL" type="text" readonly />
+      <button class="btn secondary" id="copyURL">Copiar</button>
+      <button class="btn" id="downloadQR">Descargar PNG</button>
+    </div>
+    <p class="small">Este QR apunta a la URL de esta página. Sube este archivo a GitHub Pages y listo: un solo QR para todos tus simuladores.</p>
+  </dialog>
+
+  <!-- Dependencia ligera para generar QR (funciona en GitHub Pages) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-Mn0ZrXH5iXl7O3Zbq8t50zvVd1Yk+7wZ9u2xqk9XfGk7bZk3w6wUq6XHkM2Y0VjY5K0aSuk4rxG2xL0b5H0xAQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script>
+    /*
+     * Cómo usar este hub
+     * 1) Sube este index.html a tu GitHub Pages (idealmente al repo username.github.io o a /hub/).
+     * 2) Edita el arreglo SIMULADORES para agregar/quitar enlaces.
+     * 3) Escanea el QR del hub (botón arriba) para compartir un único código.
+     */
+
+    // === 1) Lista editable de tus simuladores ===
+    const SIMULADORES = [
+      {
+        titulo: "Simulador MRU",
+        url: "https://hexezs.github.io/simulador-de-MRU/",
+        descripcion: "Movimiento Rectilíneo Uniforme: x(t) = x₀ + vt.",
+        tags: ["Cinemática","MRU","1D"]
+      },
+      {
+        titulo: "Simulador MRUV / Segunda Ley de Newton",
+        url: "https://hexezs.github.io/Segunda-Ley-de-Newton/",
+        descripcion: "Aceleración, fuerzas y variación de velocidad en el tiempo.",
+        tags: ["Cinemática","MRUV","Fuerzas"]
+      },
+      {
+        titulo: "Simulador – Mesa de Fuerzas",
+        url: "https://hexezs.github.io/mesa-de-fuerzas/",
+        descripcion: "Composición de vectores de tensión y equilibrio.",
+        tags: ["Fuerzas","Vectores","Equilibrio"]
+      },
+      {
+        titulo: "Simulador – Óptica Geométrica",
+        url: "https://hexezs.github.io/Simulador-de-ptica-Geometrica/",
+        descripcion: "Reflexión/recorrido de rayos (ajusta a tu versión específica).",
+        tags: ["Óptica","Geometría","Rayos"]
+      },
+      {
+        titulo: "Simulador – Segunda Ley (versión Newton/Rafael)",
+        url: "https://hexezs.github.io/SimuladorNewton-Rafael-Moreno/",
+        descripcion: "Variantes de fuerza = masa × aceleración con tus etiquetas.",
+        tags: ["MRUV","Fuerzas","Laboratorio"]
+      }
+      // Agrega más objetos aquí siguiendo el mismo formato
+    ];
+
+    // Derivar conjunto de etiquetas para filtros
+    const ALL_TAGS = [...new Set(SIMULADORES.flatMap(s => s.tags))].sort((a,b)=>a.localeCompare(b,'es'));
+    const state = { query: "", activeTags: new Set() };
+
+    const els = {
+      grid: document.getElementById('grid'),
+      count: document.getElementById('count'),
+      filters: document.getElementById('filters'),
+      q: document.getElementById('q'),
+      showQR: document.getElementById('showQR'),
+      shareBtn: document.getElementById('shareBtn'),
+      qrModal: document.getElementById('qrModal'),
+      hubURL: document.getElementById('hubURL'),
+      copyURL: document.getElementById('copyURL'),
+      downloadQR: document.getElementById('downloadQR'),
+      closeQR: document.getElementById('closeQR')
+    };
+
+    // === 2) Render de filtros ===
+    function renderFilters(){
+      els.filters.innerHTML = '';
+      const label = document.createElement('span');
+      label.className = 'small';
+      label.textContent = 'Filtrar por tema:';
+      els.filters.appendChild(label);
+
+      ALL_TAGS.forEach(tag => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = tag;
+        chip.addEventListener('click', () => {
+          if(state.activeTags.has(tag)) state.activeTags.delete(tag); else state.activeTags.add(tag);
+          chip.classList.toggle('active');
+          renderGrid();
+        });
+        els.filters.appendChild(chip);
+      });
+
+      // botón para limpiar filtros
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'chip';
+      clear.textContent = 'Limpiar filtros';
+      clear.addEventListener('click', ()=>{ state.activeTags.clear(); document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active')); renderGrid(); })
+      els.filters.appendChild(clear);
+    }
+
+    // === 3) Render de tarjetas ===
+    function renderGrid(){
+      const q = state.query.trim().toLowerCase();
+      const byQuery = s => !q || (
+        s.titulo.toLowerCase().includes(q) ||
+        s.descripcion.toLowerCase().includes(q) ||
+        s.tags.some(t => t.toLowerCase().includes(q))
+      );
+      const byTags = s => state.activeTags.size === 0 || [...state.activeTags].every(t => s.tags.includes(t));
+
+      const results = SIMULADORES.filter(s => byQuery(s) && byTags(s));
+      els.count.textContent = results.length;
+
+      if(results.length === 0){
+        els.grid.innerHTML = '<div class="empty">No hay simuladores que coincidan. Prueba quitando filtros o revisa la búsqueda.</div>';
+        return;
+      }
+
+      els.grid.innerHTML = results.map(s => `
+        <article class="card">
+          <div>
+            <h3>${escapeHTML(s.titulo)}</h3>
+            <p>${escapeHTML(s.descripcion)}</p>
+            <div class="tags">${s.tags.map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join('')}</div>
+          </div>
+          <div class="open">
+            <a class="btn" href="${s.url}" target="_blank" rel="noopener">Abrir →</a>
+            <a class="btn secondary" href="${s.url}" target="_blank" rel="noopener">Nueva pestaña</a>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    // === 4) Búsqueda ===
+    els.q.addEventListener('input', e=>{ state.query = e.target.value; renderGrid(); });
+    // atajo "/" para enfocar búsqueda
+    window.addEventListener('keydown', (e)=>{ if(e.key === '/' && document.activeElement !== els.q){ e.preventDefault(); els.q.focus(); } });
+
+    // === 5) Compartir y QR ===
+    function openQR(){
+      els.hubURL.value = location.href;
+      if(window.QRCode){
+        const container = document.getElementById('qrcode');
+        container.innerHTML = '';
+        const qr = new QRCode(container, { text: location.href, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.H });
+        els.qrModal.showModal();
+      } else {
+        alert('No se pudo cargar el generador de QR. Revisa tu conexión.');
+      }
+    }
+
+    els.showQR.addEventListener('click', openQR);
+    els.closeQR.addEventListener('click', ()=> els.qrModal.close());
+    els.copyURL.addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(els.hubURL.value); els.copyURL.textContent = 'Copiado ✓'; setTimeout(()=>els.copyURL.textContent='Copiar', 1200);} catch { /* ignore */ }
+    });
+
+    els.downloadQR.addEventListener('click', ()=>{
+      const canvas = document.querySelector('#qrcode canvas');
+      if(!canvas) return;
+      const link = document.createElement('a');
+      link.download = 'QR-Hub-Simuladores.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    els.shareBtn.addEventListener('click', async ()=>{
+      const url = location.href;
+      try{
+        if(navigator.share){ await navigator.share({ title: document.title, text: 'Mis simuladores de física', url }); }
+        else { await navigator.clipboard.writeText(url); alert('Enlace copiado al portapapeles.'); }
+      }catch{}
+    });
+
+    // Utilidad para evitar inyectar HTML
+    function escapeHTML(str){ return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
+
+    // Inicializar
+    renderFilters();
+    renderGrid();
+  </script>
+</body>
+</html>
