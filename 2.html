@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulador de Capacidad Calorífica — Rafael Moreno Bañaga</title>
+<meta name="description" content="Calculadora y simulador de capacidad calorífica con módulo PV=nRT. Minimalista en negro." />
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --panel:#111214;
+    --ink:#e8e8ea;
+    --muted:#a8a8af;
+    --accent:#6ce1ff;
+    --accent-2:#9ef5c2;
+    --ring: rgba(108,225,255,.35);
+    --radius:16px;
+    --shadow: 0 12px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font: 15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Helvetica Neue",Arial,sans-serif;
+    letter-spacing:.2px;
+  }
+
+  header{
+    max-width:1100px; margin:24px auto 10px; padding:16px 20px;
+  }
+  h1{
+    font-size: clamp(22px, 2.8vw, 34px); margin:0 0 6px;
+    letter-spacing:.4px;
+  }
+  .sub{color:var(--muted); margin-top:4px}
+
+  .tabs{
+    max-width:1100px; margin:0 auto 28px; padding:0 16px;
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .tab-btn{
+    appearance:none; border:1px solid #1e1f22; background:var(--panel); color:var(--ink);
+    padding:10px 14px; border-radius:12px; cursor:pointer; transition:.2s transform,.2s border-color,.2s box-shadow;
+  }
+  .tab-btn:hover{transform:translateY(-1px); border-color:#2a2c31; box-shadow:0 8px 22px rgba(0,0,0,.25)}
+  .tab-btn.active{outline: none; border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring)}
+
+  .wrap{
+    max-width:1100px; margin:0 auto 60px; padding:0 16px 16px;
+  }
+  .card{
+    background:var(--panel); border:1px solid #1b1c1f; border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:18px;
+  }
+  .grid{
+    display:grid; gap:16px;
+  }
+  @media (min-width:900px){
+    .grid-2{grid-template-columns: 1.2fr .8fr}
+    .grid-3{grid-template-columns: repeat(3,1fr)}
+  }
+
+  label{display:block; font-weight:600; margin:10px 0 6px}
+  input, select{
+    width:100%; background:#0c0d0f; color:var(--ink); border:1px solid #24252a; border-radius:12px;
+    padding:10px 12px; outline:none; transition:.2s border-color,.2s box-shadow;
+  }
+  input:focus, select:focus{border-color:var(--accent); box-shadow:0 0 0 6px var(--ring)}
+  .row{display:grid; gap:12px}
+  @media (min-width:680px){ .row{grid-template-columns: 1fr 1fr} }
+
+  .btn{
+    appearance:none; border:none; border-radius:12px; padding:10px 14px; cursor:pointer;
+    background:linear-gradient(180deg, var(--accent), #3bb9da);
+    color:#001318; font-weight:700; letter-spacing:.3px; transition:transform .15s ease, filter .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px); filter:brightness(1.05)}
+  .btn.secondary{
+    background:linear-gradient(180deg,#2b2e34,#1d1f24); color:var(--ink); border:1px solid #2b2e34;
+  }
+  .btn.warning{ background:linear-gradient(180deg, #ffb86b, #ff9e3d); color:#2b1600 }
+
+  .eq{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background:#0b0c0e; border:1px dashed #2a2c31; border-radius:12px; padding:10px 12px; color:#cfe8ff;
+    overflow:auto;
+  }
+  .kpi{
+    display:grid; gap:10px; grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .kpi .box{
+    background:#0c0d0f; border:1px solid #24252a; border-radius:12px; padding:12px 14px;
+  }
+  .kpi .val{font-size: clamp(18px, 2.2vw, 26px); font-weight:800}
+  .kpi small{color:var(--muted)}
+
+  /* Barra térmica */
+  .thermo{
+    height: 28px; border-radius: 999px; background: #0c0d0f; border:1px solid #24252a; overflow:hidden; position:relative;
+  }
+  .thermo .fill{
+    position:absolute; inset:2px; border-radius: 999px;
+    /* Color cambia via JS (HSL) */
+    background: hsl(220, 100%, 50%);
+    transition: background-color .25s linear;
+  }
+  .hint{color:var(--muted); font-size:13px}
+
+  table{width:100%; border-collapse: collapse; margin-top:10px}
+  th,td{padding:10px 8px; border-bottom:1px solid #1f2125; text-align:left; font-variant-numeric: tabular-nums}
+  th{color:#cfd3da; font-weight:700}
+  tbody tr:hover{background:#0c0d10}
+
+  footer{
+    max-width:1100px; margin:28px auto 44px; padding:0 16px; color:var(--muted); text-align:center;
+  }
+  .hide{display:none}
+</style>
+</head>
+<body>
+  <header>
+    <h1>SIMULADOR DE CAPACIDAD CALORÍFICA</h1>
+    <div class="sub">Calcula <strong>Q = m · c · ΔT</strong>, simula calentamiento/enfriamiento y explora la relación <strong>PV = nRT</strong> (n = 1&nbsp;mol).</div>
+  </header>
+
+  <!-- Navegación -->
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="calc">Calculadora</button>
+    <button class="tab-btn" data-tab="sim">Simulador de Calentamiento</button>
+    <button class="tab-btn" data-tab="pvt">Variables de estado (P, V, T)</button>
+  </nav>
+
+  <main class="wrap">
+    <!-- CALCULADORA -->
+    <section id="calc" class="card">
+      <h2 style="margin:6px 0 12px">Calculadora</h2>
+
+      <div class="grid grid-2">
+        <div>
+          <div class="row">
+            <div>
+              <label for="masa">Masa (kg)</label>
+              <input id="masa" type="number" min="0" step="any" placeholder="Ej. 2" value="1" />
+            </div>
+            <div>
+              <label for="material">Calor específico (J/kg·K)</label>
+              <select id="material">
+                <option value="4180">Agua — 4180</option>
+                <option value="2100">Hielo — 2100</option>
+                <option value="900">Aluminio — 900</option>
+                <option value="385">Cobre — 385</option>
+                <option value="450">Hierro/Acero — 450</option>
+                <option value="800">Vidrio — 800</option>
+                <option value="830">Arena — 830</option>
+                <option value="235">Plata — 235</option>
+                <option value="128">Plomo — 128</option>
+                <option value="1005">Aire (≈ a&nbsp;P cte) — 1005</option>
+                <option value="custom">Personalizado…</option>
+              </select>
+              <div id="c-custom-wrap" class="hide" style="margin-top:8px">
+                <input id="c-custom" type="number" min="0" step="any" placeholder="Ingresa c en J/kg·K" />
+                <div class="hint">Establece el valor de <em>c</em> cuando elijas “Personalizado”.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="dT">Cambio de Temperatura ΔT (K)</label>
+              <input id="dT" type="number" step="any" placeholder="Ej. 15" value="10" />
+              <div class="hint">En incrementos de temperatura, 1&nbsp;K = 1&nbsp;°C.</div>
+            </div>
+            <div style="display:flex; align-items:end; gap:10px">
+              <button id="btn-calcular" class="btn" style="width: 100%">Calcular</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="kpi">
+            <div class="box">
+              <div class="val" id="outQ">—</div>
+              <small>Calor requerido Q (J)</small>
+            </div>
+            <div class="box">
+              <div class="val" id="outC">—</div>
+              <small>Capacidad calorífica C = m·c (J/K)</small>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <div class="eq" id="eqQ">Q = m · c · ΔT</div>
+            <div class="eq" id="eqC" style="margin-top:8px">C = m · c</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULADOR -->
+    <section id="sim" class="card hide">
+      <h2 style="margin:6px 0 12px">Simulador de Calentamiento</h2>
+
+      <div class="grid grid-2">
+        <div>
+          <div class="row">
+            <div>
+              <label for="Tini">Temperatura inicial (°C)</label>
+              <input id="Tini" type="number" step="any" value="20" />
+            </div>
+            <div>
+              <label for="Tfin">Temperatura objetivo (°C)</label>
+              <input id="Tfin" type="number" step="any" value="60" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="rate">Velocidad (K/s)</label>
+              <input id="rate" type="number" min="0.01" step="any" value="1" />
+            </div>
+            <div style="display:flex; align-items:end; gap:10px">
+              <button id="btn-start" class="btn">Iniciar</button>
+              <button id="btn-pause" class="btn secondary">Pausar</button>
+              <button id="btn-reset" class="btn warning">Reiniciar</button>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>Barra térmica</label>
+            <div class="thermo">
+              <div class="fill" id="bar"></div>
+            </div>
+            <div class="hint" id="thermo-info" style="margin-top:6px">—</div>
+            <div class="hint" id="mc-info" style="margin-top:2px">m y c se toman de la pestaña “Calculadora”.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="kpi">
+            <div class="box">
+              <div class="val" id="simT">—</div>
+              <small>Temperatura actual (°C)</small>
+            </div>
+            <div class="box">
+              <div class="val" id="simQ">—</div>
+              <small>Calor acumulado desde T<sub>ini</sub> (J)</small>
+            </div>
+          </div>
+          <div class="eq" id="eqSim" style="margin-top:12px">Q(t) = m · c · [T(t) − T<sub>ini</sub>]</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <h3 style="margin:0 0 8px; font-size:16px">Evolución (tabla)</h3>
+        <table>
+          <thead>
+            <tr><th>t (s)</th><th>T (°C)</th><th>Q desde T<sub>ini</sub> (J)</th></tr>
+          </thead>
+          <tbody id="log"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PVT -->
+    <section id="pvt" class="card hide">
+      <h2 style="margin:6px 0 12px">Variables de estado (P, V, T)</h2>
+      <div class="grid grid-2">
+        <div>
+          <div class="row">
+            <div>
+              <label for="tempK">Temperatura, T (K)</label>
+              <input id="tempK" type="number" min="0" step="any" value="300" />
+            </div>
+            <div>
+              <label for="volL">Volumen, V (L)</label>
+              <input id="volL" type="number" min="0.0001" step="any" value="10" />
+            </div>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:10px">
+            <button id="btn-pvt" class="btn">Calcular P</button>
+            <button id="btn-pvt-clear" class="btn secondary">Limpiar</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="kpi">
+            <div class="box">
+              <div class="val" id="outP">—</div>
+              <small>Presión, P (atm)</small>
+            </div>
+            <div class="box">
+              <div class="val">n = 1&nbsp;mol</div>
+              <small>R = 0.082&nbsp;L·atm/(mol·K)</small>
+            </div>
+          </div>
+          <div class="eq" id="eqP" style="margin-top:12px">
+            PV = nRT → P = (nRT)/V
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Hecho para OLED — minimalista en negro. <br/>
+    <strong>Rafael Moreno Bañaga</strong>
+  </footer>
+
+<script>
+  // Utilidades
+  const $ = sel => document.querySelector(sel);
+  const fmt = (n, d=4) =>
+    (isFinite(Number(n)) ? Number(n).toLocaleString('es-MX', {maximumFractionDigits:d}) : '—');
+
+  // Tabs
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(b => b.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('main section').forEach(s => s.classList.add('hide'));
+    document.getElementById(b.dataset.tab).classList.remove('hide');
+  }));
+
+  // CALCULADORA
+  const masa = $('#masa');
+  const material = $('#material');
+  const cCustomWrap = $('#c-custom-wrap');
+  const cCustom = $('#c-custom');
+  const dT = $('#dT');
+  const outQ = $('#outQ');
+  const outC = $('#outC');
+  const eqQ = $('#eqQ');
+  const eqC = $('#eqC');
+
+  function currentC(){
+    if(material.value === 'custom'){
+      const v = parseFloat(cCustom.value);
+      return isFinite(v) && v > 0 ? v : NaN;
+    }
+    return parseFloat(material.value);
+  }
+
+  material.addEventListener('change', () => {
+    cCustomWrap.classList.toggle('hide', material.value !== 'custom');
+  });
+
+  $('#btn-calcular').addEventListener('click', () => {
+    const m = parseFloat(masa.value);
+    const c = currentC();
+    const dt = parseFloat(dT.value);
+
+    if(!(isFinite(m) && m >= 0) || !(isFinite(c) && c > 0) || !(isFinite(dt))){
+      outQ.textContent = '—';
+      outC.textContent = '—';
+      eqQ.textContent = 'Q = m · c · ΔT';
+      eqC.textContent = 'C = m · c';
+      alert('Revisa los datos: m ≥ 0, c > 0, ΔT numérico.');
+      return;
+    }
+
+    const Q = m * c * dt;
+    const C = m * c;
+
+    outQ.textContent = fmt(Q, 6);
+    outC.textContent = fmt(C, 6);
+
+    eqQ.innerHTML = `Q = m · c · ΔT = ${fmt(m,6)} · ${fmt(c,6)} · ${fmt(dt,6)} = <strong>${fmt(Q,6)} J</strong>`;
+    eqC.innerHTML = `C = m · c = ${fmt(m,6)} · ${fmt(c,6)} = <strong>${fmt(C,6)} J/K</strong>`;
+  });
+
+  // SIMULADOR DE CALENTAMIENTO
+  const Tini = $('#Tini'), Tfin = $('#Tfin'), rate = $('#rate');
+  const btnStart = $('#btn-start'), btnPause = $('#btn-pause'), btnReset = $('#btn-reset');
+  const bar = $('#bar'), simT = $('#simT'), simQ = $('#simQ'), logBody = $('#log');
+  const eqSim = $('#eqSim'), thermoInfo = $('#thermo-info'), mcInfo = $('#mc-info');
+
+  let raf = null, running = false, t0 = 0, lastTick = 0, acc = 0, curT = null, targetT = null, baseT = null;
+
+  function hslFromTemp(t, tMin, tMax){
+    // Map temp to hue 220 (frío) → 0 (caliente)
+    const clamp = (x,a,b)=>Math.min(Math.max(x,a),b);
+    const p = clamp((t - tMin) / (tMax - tMin || 1), 0, 1);
+    const hue = 220 - 220 * p;
+    return `hsl(${hue}, 100%, 50%)`;
+  }
+
+  function updateThermo(){
+    const tMin = Math.min(baseT, targetT) - 20;
+    const tMax = Math.max(baseT, targetT) + 20;
+    bar.style.backgroundColor = hslFromTemp(curT, tMin, tMax);
+    thermoInfo.textContent = `Escala térmica (aprox): min ${fmt(tMin,1)} °C — actual ${fmt(curT,2)} °C — max ${fmt(tMax,1)} °C`;
+  }
+
+  function mcValues(){
+    const m = parseFloat(masa.value);
+    const c = currentC();
+    return { m: isFinite(m)?m:NaN, c: isFinite(c)?c:NaN };
+  }
+
+  function logRow(tSec){
+    const {m,c} = mcValues();
+    const Q = (isFinite(m)&&isFinite(c)) ? m*c*(curT - baseT) : NaN;
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td'); td1.textContent = fmt(tSec,2);
+    const td2 = document.createElement('td'); td2.textContent = fmt(curT,2);
+    const td3 = document.createElement('td'); td3.textContent = isFinite(Q)?fmt(Q,6):'—';
+    tr.append(td1,td2,td3);
+    logBody.appendChild(tr);
+  }
+
+  function loop(ts){
+    if(!running) return;
+    if(!t0){ t0 = ts; lastTick = ts; }
+    const dt = (ts - lastTick)/1000; // s
+    lastTick = ts;
+
+    const r = Math.abs(parseFloat(rate.value));
+    const sign = Math.sign(targetT - baseT) || 1;
+    curT += sign * r * dt;
+    acc += dt;
+
+    const reached = (sign>0 ? curT >= targetT : curT <= targetT);
+    if(reached){ curT = targetT; }
+
+    // Actualizar pantalla
+    const {m,c} = mcValues();
+    const Q = (isFinite(m)&&isFinite(c)) ? m*c*(curT - baseT) : NaN;
+    simT.textContent = fmt(curT,2);
+    simQ.textContent = isFinite(Q)?fmt(Q,6):'—';
+    eqSim.innerHTML = `Q(t) = m · c · [T(t) − T<sub>ini</sub>] = ${fmt(m,6)} · ${fmt(c,6)} · [${fmt(curT,2)} − ${fmt(baseT,2)}] = <strong>${isFinite(Q)?fmt(Q,6):'—'} J</strong>`;
+    updateThermo();
+
+    // Registrar cada ~1 s para tabla
+    if(acc >= 1){
+      const tSec = Math.round((ts - t0)/1000);
+      logRow(tSec);
+      acc = 0;
+    }
+
+    if(reached){
+      running = false;
+      raf = null;
+      return;
+    }
+    raf = requestAnimationFrame(loop);
+  }
+
+  function startSim(){
+    const ti = parseFloat(Tini.value);
+    const tf = parseFloat(Tfin.value);
+    const r = parseFloat(rate.value);
+    const {m,c} = mcValues();
+
+    if(!(isFinite(ti)&&isFinite(tf)&&isFinite(r)&&r>0)){
+      alert('Revisa T inicial, T objetivo y la velocidad (K/s > 0).');
+      return;
+    }
+    if(!(isFinite(m)&&m>=0&&isFinite(c)&&c>0)){
+      alert('En “Calculadora”, establece m ≥ 0 y c > 0 (o Personalizado).');
+      return;
+    }
+
+    baseT = ti; targetT = tf; curT = ti; t0 = 0; lastTick = 0; acc = 0;
+    logBody.innerHTML = '';
+    simT.textContent = fmt(curT,2);
+    const Q0 = m*c*(curT - baseT);
+    simQ.textContent = fmt(Q0,6);
+    mcInfo.innerHTML = `Usando <strong>m = ${fmt(m,6)} kg</strong> y <strong>c = ${fmt(c,6)} J/kg·K</strong> desde la pestaña Calculadora.`;
+    updateThermo();
+    logRow(0);
+
+    running = true;
+    if(!raf) raf = requestAnimationFrame(loop);
+  }
+  function pauseSim(){ running = false; if(raf){ cancelAnimationFrame(raf); raf = null; } }
+  function resetSim(){
+    pauseSim();
+    logBody.innerHTML = '';
+    curT = null; baseT = null; targetT = null; t0 = 0; lastTick = 0; acc = 0;
+    simT.textContent = '—'; simQ.textContent = '—';
+    bar.style.backgroundColor = 'hsl(220,100%,50%)';
+    thermoInfo.textContent = '—';
+  }
+
+  btnStart.addEventListener('click', startSim);
+  btnPause.addEventListener('click', pauseSim);
+  btnReset.addEventListener('click', resetSim);
+
+  // PVT
+  const tempK = $('#tempK'), volL = $('#volL'), outP = $('#outP'), eqP = $('#eqP');
+  const R = 0.082057; // L·atm/(mol·K)
+  $('#btn-pvt').addEventListener('click', () => {
+    const T = parseFloat(tempK.value);
+    const V = parseFloat(volL.value);
+    const n = 1;
+    if(!(isFinite(T)&&T>0 && isFinite(V)&&V>0)){
+      outP.textContent = '—';
+      eqP.innerHTML = `PV = nRT → P = (nRT)/V`;
+      alert('Coloca T > 0 K y V > 0 L.');
+      return;
+    }
+    const P = (n*R*T)/V;
+    outP.textContent = fmt(P,6);
+    eqP.innerHTML = `P = (nRT)/V = ( ${n} · ${R} · ${fmt(T,6)} ) / ${fmt(V,6)} = <strong>${fmt(P,6)} atm</strong>`;
+  });
+  $('#btn-pvt-clear').addEventListener('click', ()=>{
+    tempK.value = 300; volL.value = 10; outP.textContent = '—';
+    eqP.innerHTML = `PV = nRT → P = (nRT)/V`;
+  });
+
+  // Valores iniciales de fórmula en pantalla
+  eqQ.textContent = 'Q = m · c · ΔT';
+  eqC.textContent = 'C = m · c';
+  eqP.textContent = 'PV = nRT → P = (nRT)/V';
+</script>
+</body>
+</html>
