@@ -1,212 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Programas de Rafael Moreno Bañaga — Hub</title>
-  <meta name="description" content="Hub minimalista (tema: Día de Muertos) para abrir mis programas HTML." />
-  <meta name="color-scheme" content="dark" />
-  <style>
-    :root{
-      /* Paleta Día de Muertos (amigable con OLED) */
-      --bg:#000;           /* Negro puro para OLED */
-      --panel:#0b0b0b;     /* Panel casi negro */
-      --card:#0f0f0f;      /* Tarjetas */
-      --text:#f2efe9;      /* Texto principal cálido */
-      --muted:#b9b4ab;     /* Texto secundario */
-      --accent:#ffb300;    /* Cempasúchil */
-      --fuchsia:#ff4fa2;   /* Papel picado rosa */
-      --violet:#b388ff;    /* Toque morado */
-      --ring: rgba(255,179,0,.28);
-      --radius: 18px;
-      --shadow: 0 8px 30px rgba(0,0,0,.6);
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font: 500 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      letter-spacing:.2px;
-    }
-
-    .wrap{max-width:1100px; margin:0 auto; padding:clamp(16px,3vw,32px)}
-
-    /* Encabezado */
-    header{position:relative; padding:28px 18px 10px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,179,0,.06), transparent 70%);}
-    h1{
-      margin:0; font-weight:800; line-height:1.1; font-size: clamp(28px, 4.2vw, 44px);
-      background: conic-gradient(from 180deg, var(--accent), var(--fuchsia), var(--violet), var(--accent));
-      -webkit-background-clip:text; background-clip:text; color:transparent; filter: drop-shadow(0 2px 0 rgba(0,0,0,.3));
-    }
-    .subtitle{color:var(--muted); margin-top:6px; font-size:14px}
-
-    /* Papel picado sutil bajo el header */
-    .papel{
-      height:14px; margin-top:16px; opacity:.35; border-radius:10px;
-      background:
-        radial-gradient(circle at 8px 7px, var(--accent) 6px, transparent 7px) 0 0/40px 14px,
-        radial-gradient(circle at 28px 7px, var(--fuchsia) 6px, transparent 7px) 0 0/40px 14px,
-        radial-gradient(circle at 48px 7px, var(--violet) 6px, transparent 7px) 0 0/40px 14px,
-        linear-gradient(#141414,#141414);
-      box-shadow: var(--shadow);
-    }
-
-    /* Controles */
-    .toolbar{display:flex; gap:12px; align-items:center; margin:18px 4px 8px; flex-wrap:wrap}
-    .search{
-      flex:1 1 280px; background:var(--panel); color:var(--text); border:1px solid #1d1d1d;
-      border-radius:14px; padding:10px 12px 10px 40px; outline:none;
-      box-shadow: inset 0 0 0 1px transparent; transition:.2s box-shadow, .2s border-color;
-      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffb300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>');
-      background-repeat:no-repeat; background-position:12px center;
-    }
-    .search:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--ring)}
-
-    /* Grid de apps */
-    .grid{display:grid; gap:14px; margin-top:10px; grid-template-columns: repeat(auto-fill, minmax(240px,1fr));}
-
-    a.app{
-      position:relative; display:flex; align-items:center; gap:12px; padding:16px 16px; text-decoration:none;
-      color:var(--text); background:
-        radial-gradient(120px 80px at -20% -30%, rgba(255,79,162,.10), transparent 70%),
-        radial-gradient(120px 80px at 120% 130%, rgba(179,136,255,.10), transparent 70%),
-        var(--card);
-      border:1px solid rgba(255,179,0,.18); border-radius:16px; box-shadow: var(--shadow);
-      overflow:hidden; isolation:isolate; transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease;
-    }
-    a.app:hover{ transform: translateY(-3px); border-color: rgba(255,179,0,.45); box-shadow: 0 10px 30px rgba(255,179,0,.10), var(--shadow); }
-    a.app:focus-visible{ outline:none; box-shadow:0 0 0 3px var(--ring), var(--shadow); border-color:var(--accent)}
-
-    /* Icono calaverita */
-    .icon{
-      width:34px; height:34px; flex:0 0 34px; border-radius:10px; display:grid; place-items:center;
-      background: radial-gradient(circle at 30% 30%, rgba(255,179,0,.35), transparent 55%), #121212;
-      border:1px solid #242424;
-    }
-    .title{font-weight:700; font-size:16px}
-    .open{margin-left:auto; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px}
-    .open .arrow{transition: transform .18s ease}
-    a.app:hover .open .arrow{ transform: translateX(3px) }
-
-    /* Estado vacío */
-    .empty{opacity:.7; text-align:center; padding:28px; border:1px dashed #262626; border-radius:14px; background:var(--panel)}
-
-    /* Preferencia de reducir movimiento */
-    @media (prefers-reduced-motion: reduce){
-      a.app{transition:none}
-      a.app:hover{transform:none}
-    }
-
-    footer{color:#9a968f; font-size:12px; text-align:center; margin:26px 0 6px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simuladores Rafael Moreno</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
-<body>
-  <div class="wrap">
-    <header aria-label="Encabezado principal">
-      <h1>Programas de Rafael Moreno Bañaga</h1>
-      <div class="subtitle">Hub minimalista inspirado en <strong>Día de Muertos</strong>. Toque cempasúchil & papel picado, fondo negro para OLED.</div>
-      <div class="papel" aria-hidden="true"></div>
-    </header>
 
-    <div class="toolbar" role="search">
-      <input id="search" class="search" type="search" placeholder="Buscar programa… (filtra por título)" autocomplete="off" aria-label="Buscar programa" />
+<body>
+    <div class="background-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+        <div class="blob blob-4"></div>
     </div>
 
-    <main>
-      <div id="grid" class="grid" aria-live="polite"></div>
-      <div id="empty" class="empty" hidden>
-        No hay elementos para mostrar. Agrega objetos en <code>SIMULADORES</code> dentro del script.
-      </div>
+    <main class="glass-hub">
+        <header>
+            <h1>Simuladores Rafael Moreno</h1>
+        </header>
+
+        <div class="grid-container" id="grid-container">
+            <!-- Content rendered via script.js -->
+        </div>
     </main>
 
-    <footer>
-      Hecho con cariño — tema Día de Muertos • Abre enlaces en pestaña nueva
-    </footer>
-  </div>
-
-  <script>
-    // ================================================
-    // 1) AGREGA TUS PROGRAMAS AQUÍ
-    //    Formato de ejemplo (puedes pegar/duplicar objetos):
-    // ================================================
-    const SIMULADORES = [
-      {
-        titulo: "TRANSFERENCIA DE CALOR",
-        url: "https://hexezs.github.io/TRANSFERENCIA-DE-CALOR/",
-      },
-      {
-        titulo: "Laboratorio de Termodinámica",
-        url: "https://hexezs.github.io/Laboratorio-de-Termodin-mica/",
-      },
-      // Agrega más objetos aquí siguiendo el mismo formato
-      // { titulo: "Nombre del programa", url: "https://…" },
-    ];
-
-    // ================================================
-    // 2) RENDER DEL GRID
-    // ================================================
-    const grid = document.getElementById('grid');
-    const empty = document.getElementById('empty');
-    const search = document.getElementById('search');
-
-    function skullSVG() {
-      // Calaverita minimalista (inline SVG)
-      return `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M7 18v-2c-1.657 0-3-1.343-3-3V9a8 8 0 0 1 16 0v4c0 1.657-1.343 3-3 3v2" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>
-          <circle cx="9" cy="11" r="2" fill="var(--fuchsia)"/>
-          <circle cx="15" cy="11" r="2" fill="var(--violet)"/>
-          <path d="M9 18h6" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>`;
-    }
-
-    function makeCard(item){
-      const a = document.createElement('a');
-      a.className = 'app';
-      a.href = item.url;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.setAttribute('data-title', (item.titulo || '').toLowerCase());
-      a.setAttribute('aria-label', `Abrir ${item.titulo}`);
-
-      a.innerHTML = `
-        <div class="icon">${skullSVG()}</div>
-        <div class="title">${item.titulo}</div>
-        <div class="open">Abrir <span class="arrow">→</span></div>
-      `;
-      // Micro-ripple accesible al hacer click (sin colores fijos)
-      a.addEventListener('click', (ev)=>{
-        const rect = a.getBoundingClientRect();
-        const x = ev.clientX - rect.left; const y = ev.clientY - rect.top;
-        a.style.backgroundImage = `radial-gradient(200px 200px at ${x}px ${y}px, rgba(255,179,0,.12), transparent 40%), ` +
-                                  `radial-gradient(120px 80px at -20% -30%, rgba(255,79,162,.10), transparent 70%), ` +
-                                  `radial-gradient(120px 80px at 120% 130%, rgba(179,136,255,.10), transparent 70%), var(--card)`;
-        setTimeout(()=>{ a.style.backgroundImage = '' }, 220);
-      });
-      return a;
-    }
-
-    function render(list){
-      grid.innerHTML = '';
-      if (!list || !list.length){
-        empty.hidden = false; return;
-      }
-      empty.hidden = true;
-      const frag = document.createDocumentFragment();
-      list.forEach(item => frag.appendChild(makeCard(item)));
-      grid.appendChild(frag);
-    }
-
-    // Filtro en vivo
-    search.addEventListener('input', ()=>{
-      const q = search.value.trim().toLowerCase();
-      const filtered = !q ? SIMULADORES : SIMULADORES.filter(x => (x.titulo||'').toLowerCase().includes(q));
-      render(filtered);
-    });
-
-    // Inicializa
-    render(SIMULADORES);
-  </script>
+    <script src="script.js"></script>
 </body>
+
 </html>
